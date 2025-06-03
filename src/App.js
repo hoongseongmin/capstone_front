@@ -42,6 +42,23 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <div 
+  style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw', 
+    height: '100vh',
+    backgroundImage: 'url(/images/msti-bear.png)',
+    backgroundSize: 'cover',  // 화면 전체를 덮도록
+    backgroundPosition: 'center center',  // 중앙 정렬
+    backgroundRepeat: 'no-repeat',
+    opacity: 0.75,  // 매우 연하게 (배경이므로)
+    zIndex: -1,
+    pointerEvents: 'none'
+  }}
+/>
+
       <Router>
         <Routes>
           {/* 공개 라우트 */}
