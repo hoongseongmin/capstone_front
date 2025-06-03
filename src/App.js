@@ -8,8 +8,9 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Login from './pages/Login';
 import FileUpload from './pages/FileUpload';
 import Dashboard from './pages/Dashboard';
-import Comparison from './pages/Comparison'; // 새로 추가된 비교 페이지
-// 다른 페이지들을 여기에 import
+import Comparison from './pages/Comparison';
+import Character from './pages/Character';
+
 
 // 테마 설정
 const theme = createTheme({
@@ -81,6 +82,14 @@ function App() {
             </ProtectedRoute>
           } />
           
+          <Route path="/character" element={
+            <ProtectedRoute>
+              <Character />
+            </ProtectedRoute>
+          } />
+
+
+          
           {/* 루트 경로 처리 */}
           <Route path="/" element={
             isAuthenticated() ? 
@@ -95,5 +104,7 @@ function App() {
     </ThemeProvider>
   );
 }
+
+
 
 export default App;

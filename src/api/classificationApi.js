@@ -22,7 +22,7 @@ export const classifyExcelFile = async (file) => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 30000, // 30초 타임아웃
+        timeout: 3000000, // 3000초 타임아웃
       }
     );
     

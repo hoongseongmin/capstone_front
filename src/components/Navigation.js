@@ -17,6 +17,9 @@ const Navigation = () => {
           <Button color="inherit" component={RouterLink} to="/comparison">
             소비 비교
           </Button>
+          <Button color="inherit" component={RouterLink} to="/character">
+            내 캐릭터
+          </Button>
           <Button 
             color="inherit" 
             onClick={() => {
