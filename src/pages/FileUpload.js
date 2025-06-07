@@ -151,7 +151,7 @@ const handleSubmit = async (event) => {
      
      // 3초 후 대시보드로 자동 이동
      setTimeout(() => {
-       navigate('/dashboard');
+       navigate('/character');
      }, 3000);
      
    } catch (apiError) {
@@ -198,7 +198,7 @@ const handleSubmit = async (event) => {
          
          // 3초 후 대시보드로 자동 이동
          setTimeout(() => {
-           navigate('/dashboard');
+           navigate('/character');
          }, 3000);
          
        } catch (error) {
@@ -228,7 +228,7 @@ const handleSubmit = async (event) => {
 };
 
  const handleSkip = () => {
-   navigate('/dashboard');
+   navigate('/character');
  };
 
  const handleSelectionChange = (event) => {

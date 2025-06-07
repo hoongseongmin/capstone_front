@@ -1,20 +1,51 @@
 // 파일 위치: src/pages/Dashboard.js
-// 설명: 백엔드 API에서 받은 실제 데이터를 활용하여 개선된 대시보드 (React Hook 경고 수정)
+// 설명: 카테고리 수정 기능이 추가된 대시보드
 
 import Navigation from '../components/Navigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, Grid, Paper, Typography, Box, CircularProgress,
-  List, ListItem, ListItemText, Divider, Card, CardContent 
+  List, ListItem, ListItemText, Divider, Card, CardContent,
+  Button, Select, MenuItem, FormControl, Chip
 } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 // 랜덤 색상 생성 함수
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#6B66FF'];
 const getRandomColor = (index) => COLORS[index % COLORS.length];
 
+// 사용 가능한 카테고리 목록
+const AVAILABLE_CATEGORIES = [
+  '식비', '교통비', '통신비', '주거비', '의료비', '교육비', 
+  '생활용품비', '이미용/화장품', '온라인 컨텐츠', '여가비', 
+  '경조사비', '금융비', '기타'
+];
+
+// 카테고리별 색상 매핑
+const getCategoryColor = (category) => {
+  const colorMap = {
+    '식비': '#FF6B6B',
+    '교통비': '#4ECDC4',
+    '통신비': '#45B7D1',
+    '주거비': '#96CEB4',
+    '의료비': '#FFEAA7',
+    '교육비': '#DDA0DD',
+    '생활용품비': '#98D8C8',
+    '이미용/화장품': '#F7DC6F',
+    '온라인 컨텐츠': '#BB8FCE',
+    '여가비': '#85C1E9',
+    '경조사비': '#F8C471',
+    '금융비': '#82E0AA',
+    '기타': '#D5DBDB'
+  };
+  return colorMap[category] || '#D5DBDB';
+};
+
 const Dashboard = () => {
-  // 상태 관리
+  // 기존 상태 관리
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -22,63 +53,160 @@ const Dashboard = () => {
   const [monthlyTrend, setMonthlyTrend] = useState(null);
   const [error, setError] = useState('');
 
-  // 🔥 월별 트렌드 데이터 생성 함수
-  
-const generateMonthlyTrend = useCallback((transactions) => {
+  // 🆕 수정 기능 관련 상태
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingTransactions, setEditingTransactions] = useState([]);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // 월별 트렌드 데이터 생성 함수
+  const generateMonthlyTrend = useCallback((transactions) => {
     const monthlyMap = {};
     
     transactions.forEach(transaction => {
-        // 🔥 날짜 파싱 개선
-        let date;
-        try {
-            date = new Date(transaction.transaction_date);
-            // 유효하지 않은 날짜 체크
-            if (isNaN(date.getTime())) {
-                date = new Date(); // 현재 날짜로 대체
-            }
-        } catch {
-            date = new Date(); // 현재 날짜로 대체
+      let date;
+      try {
+        date = new Date(transaction.transaction_date);
+        if (isNaN(date.getTime())) {
+          date = new Date();
         }
-        
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        
-        // 나머지 로직은 동일
-        if (!monthlyMap[monthKey]) {
-            monthlyMap[monthKey] = {
-                month: monthKey,
-                total_amount: 0,
-                transaction_count: 0
-            };
-        }
-        
-        monthlyMap[monthKey].total_amount += transaction.amount;
-        monthlyMap[monthKey].transaction_count += 1;
+      } catch {
+        date = new Date();
+      }
+      
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!monthlyMap[monthKey]) {
+        monthlyMap[monthKey] = {
+          month: monthKey,
+          total_amount: 0,
+          transaction_count: 0
+        };
+      }
+      
+      monthlyMap[monthKey].total_amount += transaction.amount;
+      monthlyMap[monthKey].transaction_count += 1;
     });
     
     return Object.values(monthlyMap).sort((a, b) => a.month.localeCompare(b.month));
-}, []);
+  }, []);
 
-  // 🔥 실제 데이터 로딩 함수 (useCallback으로 메모이제이션)
+  // 카테고리 요약 재계산 함수
+  const recalculateCategorySummary = useCallback((updatedTransactions) => {
+    const categorySummary = {};
+    let totalAmount = 0;
+
+    // 카테고리별 집계
+    updatedTransactions.forEach(transaction => {
+      const category = transaction.category;
+      const amount = transaction.amount;
+
+      if (!categorySummary[category]) {
+        categorySummary[category] = {
+          count: 0,
+          total_amount: 0
+        };
+      }
+
+      categorySummary[category].count += 1;
+      categorySummary[category].total_amount += amount;
+      totalAmount += amount;
+    });
+
+    // 퍼센트 계산
+    Object.keys(categorySummary).forEach(category => {
+      categorySummary[category].percentage = totalAmount > 0 ? 
+        (categorySummary[category].total_amount / totalAmount) * 100 : 0;
+    });
+
+    return categorySummary;
+  }, []);
+
+  // 데이터 저장 함수
+  const saveChanges = useCallback(() => {
+    try {
+      // localStorage 업데이트
+      localStorage.setItem('userData', JSON.stringify(editingTransactions));
+      
+      // 카테고리 요약 재계산 및 저장
+      const newCategorySummary = recalculateCategorySummary(editingTransactions);
+      localStorage.setItem('categorySummary', JSON.stringify(newCategorySummary));
+      
+      // 상태 업데이트
+      setTransactions(editingTransactions);
+      
+      // 파이차트용 데이터 업데이트
+      const categoryBreakdown = Object.entries(newCategorySummary).map(([categoryName, data]) => ({
+        category_id: categoryName,
+        category_name: categoryName,
+        total_amount: data.total_amount,
+        percentage: data.percentage,
+        transaction_count: data.count
+      }));
+
+      const totalSpending = categoryBreakdown.reduce((sum, cat) => sum + cat.total_amount, 0);
+      
+      setSpendingPattern({
+        total_spending: totalSpending,
+        category_breakdown: categoryBreakdown
+      });
+
+      // 월별 트렌드 업데이트
+      const monthlyData = generateMonthlyTrend(editingTransactions);
+      setMonthlyTrend({ monthly_totals: monthlyData });
+
+      // 편집 모드 종료
+      setIsEditMode(false);
+      setHasChanges(false);
+
+      console.log('✅ 변경사항 저장 완료');
+    } catch (error) {
+      console.error('❌ 저장 중 오류:', error);
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  }, [editingTransactions, recalculateCategorySummary, generateMonthlyTrend]);
+
+  // 편집 모드 시작
+  const startEditMode = useCallback(() => {
+    setEditingTransactions([...transactions]);
+    setIsEditMode(true);
+    setHasChanges(false);
+  }, [transactions]);
+
+  // 편집 취소
+  const cancelEdit = useCallback(() => {
+    setIsEditMode(false);
+    setEditingTransactions([]);
+    setHasChanges(false);
+  }, []);
+
+  // 카테고리 변경 핸들러
+  const handleCategoryChange = useCallback((index, newCategory) => {
+    const updatedTransactions = [...editingTransactions];
+    updatedTransactions[index] = {
+      ...updatedTransactions[index],
+      category: newCategory
+    };
+    setEditingTransactions(updatedTransactions);
+    setHasChanges(true);
+  }, [editingTransactions]);
+
+  // 실제 데이터 로딩 함수
   const loadRealData = useCallback(async () => {
     try {
       setLoading(true);
       
-      // 저장된 실제 데이터 가져오기
       const userData = localStorage.getItem('userData');
       const categorySummary = localStorage.getItem('categorySummary');
-      const classificationSummary = localStorage.getItem('classificationSummary');
       
       console.log('🔍 저장된 데이터 확인:');
       console.log('userData:', userData ? '있음' : '없음');
       console.log('categorySummary:', categorySummary ? '있음' : '없음');
-      console.log('classificationSummary:', classificationSummary ? '있음' : '없음');
       
       if (userData) {
         const parsedTransactions = JSON.parse(userData);
         setTransactions(parsedTransactions);
         console.log('✅ 실제 거래 데이터 로드:', parsedTransactions.length, '건');
         
-        // 월별 트렌드 데이터 생성 (실제 거래 데이터 기반)
         const monthlyData = generateMonthlyTrend(parsedTransactions);
         setMonthlyTrend({ monthly_totals: monthlyData });
         console.log('✅ 월별 트렌드 데이터 생성:', monthlyData.length, '개월');
@@ -88,7 +216,6 @@ const generateMonthlyTrend = useCallback((transactions) => {
         const parsedCategorySummary = JSON.parse(categorySummary);
         console.log('✅ 카테고리 요약 데이터 로드:', parsedCategorySummary);
         
-        // 파이차트용 데이터 변환
         const categoryBreakdown = Object.entries(parsedCategorySummary).map(([categoryName, data]) => ({
           category_id: categoryName,
           category_name: categoryName,
@@ -97,7 +224,6 @@ const generateMonthlyTrend = useCallback((transactions) => {
           transaction_count: data.count
         }));
         
-        // 총 지출 계산
         const totalSpending = categoryBreakdown.reduce((sum, cat) => sum + cat.total_amount, 0);
         
         setSpendingPattern({
@@ -117,13 +243,10 @@ const generateMonthlyTrend = useCallback((transactions) => {
   }, [generateMonthlyTrend]);
 
   useEffect(() => {
-    // LocalStorage에서 사용자 정보 가져오기
     const userInfo = localStorage.getItem('user');
     if (userInfo) {
       const parsedUser = JSON.parse(userInfo);
       setUser(parsedUser);
-      
-      // 🔥 실제 업로드된 데이터 로드
       loadRealData();
     } else {
       setError('사용자 정보를 찾을 수 없습니다.');
@@ -314,23 +437,69 @@ const generateMonthlyTrend = useCallback((transactions) => {
             </Paper>
           </Grid>
 
-          {/* 최근 거래 내역 - 스크롤 기능 추가 */}
+          {/* 🆕 최근 거래 내역 - 카테고리 수정 기능 추가 */}
           <Grid item xs={12}>
             <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom component="div">
-                최근 거래 내역 ({transactions?.length || 0}건)
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" component="div">
+                  최근 거래 내역 ({transactions?.length || 0}건)
+                </Typography>
+                
+                {/* 수정/저장/취소 버튼 */}
+                <Box>
+                  {!isEditMode ? (
+                    <Button
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      onClick={startEditMode}
+                      disabled={!transactions || transactions.length === 0}
+                    >
+                      카테고리 수정
+                    </Button>
+                  ) : (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        startIcon={<SaveIcon />}
+                        onClick={saveChanges}
+                        disabled={!hasChanges}
+                        color="primary"
+                      >
+                        저장
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<CancelIcon />}
+                        onClick={cancelEdit}
+                        color="secondary"
+                      >
+                        취소
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              {/* 편집 모드 안내 */}
+              {isEditMode && (
+                <Box sx={{ mb: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="info.contrastText">
+                    💡 파란색 카테고리 버튼을 클릭하여 카테고리를 변경할 수 있습니다. 변경 후 저장 버튼을 눌러주세요.
+                  </Typography>
+                </Box>
+              )}
+
               {transactions && transactions.length > 0 ? (
                 <Box 
                   sx={{ 
-                    maxHeight: 600, // 최대 높이 설정
-                    overflow: 'auto', // 스크롤 가능하도록 설정
-                    border: '1px solid #e0e0e0', // 경계선 추가
+                    maxHeight: 600,
+                    overflow: 'auto',
+                    border: '1px solid #e0e0e0',
                     borderRadius: 1
                   }}
                 >
                   <List>
-                    {transactions.map((transaction, index) => (
+                    {(isEditMode ? editingTransactions : transactions).map((transaction, index) => (
                       <React.Fragment key={transaction.transaction_date + index}>
                         <ListItem>
                           <ListItemText
@@ -339,18 +508,36 @@ const generateMonthlyTrend = useCallback((transactions) => {
                                 <Typography variant="subtitle1">
                                   {transaction.store_name} - ₩{transaction.amount?.toLocaleString()}
                                 </Typography>
-                                <Typography 
-                                  variant="caption" 
-                                  sx={{ 
-                                    bgcolor: 'primary.main', 
-                                    color: 'white', 
-                                    px: 1, 
-                                    py: 0.5, 
-                                    borderRadius: 1 
-                                  }}
-                                >
-                                  {transaction.category}
-                                </Typography>
+                                
+                                {/* 🆕 카테고리 표시/수정 */}
+                                {isEditMode ? (
+                                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                                    <Select
+                                      value={transaction.category}
+                                      onChange={(e) => handleCategoryChange(index, e.target.value)}
+                                      sx={{
+                                        bgcolor: getCategoryColor(transaction.category),
+                                        color: 'white',
+                                        '& .MuiSelect-icon': { color: 'white' },
+                                        '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
+                                      }}
+                                    >
+                                      {AVAILABLE_CATEGORIES.map((category) => (
+                                        <MenuItem key={category} value={category}>
+                                          {category}
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <Chip
+                                    label={transaction.category}
+                                    sx={{
+                                      bgcolor: getCategoryColor(transaction.category),
+                                      color: 'white'
+                                    }}
+                                  />
+                                )}
                               </Box>
                             }
                             secondary={
@@ -372,7 +559,7 @@ const generateMonthlyTrend = useCallback((transactions) => {
                             }
                           />
                         </ListItem>
-                        {index < transactions.length - 1 && <Divider />}
+                        {index < (isEditMode ? editingTransactions : transactions).length - 1 && <Divider />}
                       </React.Fragment>
                     ))}
                   </List>

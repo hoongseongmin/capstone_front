@@ -10,6 +10,7 @@ import FileUpload from './pages/FileUpload';
 import Dashboard from './pages/Dashboard';
 import Comparison from './pages/Comparison';
 import Character from './pages/Character';
+import IntegratedAnalysis from './pages/IntegratedAnalysis';
 
 
 // 테마 설정
@@ -85,6 +86,11 @@ function App() {
           <Route path="/character" element={
             <ProtectedRoute>
               <Character />
+            </ProtectedRoute>
+          } />
+          <Route path="/integrated" element={
+            <ProtectedRoute>
+              <IntegratedAnalysis />
             </ProtectedRoute>
           } />
 

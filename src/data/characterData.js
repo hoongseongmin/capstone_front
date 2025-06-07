@@ -5,7 +5,7 @@
 export const consumptionCharacters = {
   tiger: {
     id: 'tiger',
-    name: '호랑이',
+    name: '호균이',
     type: '균형형',
     description: '모든 분야에 고르게 소비하는 균형잡힌 타입',
     pattern: {
@@ -29,7 +29,7 @@ export const consumptionCharacters = {
   },
   horse: {
     id: 'horse',
-    name: '말',
+    name: '대중교통 말스터',
     type: '교통 위주형',
     description: '이동과 교통에 많은 비용을 투자하는 활동적인 타입',
     pattern: {
@@ -53,7 +53,7 @@ export const consumptionCharacters = {
   },
   panda: {
     id: 'panda',
-    name: '판다',
+    name: '푸드판다',
     type: '식비 위주형',
     description: '먹는 것을 가장 중요하게 생각하는 미식가 타입',
     pattern: {
@@ -77,7 +77,7 @@ export const consumptionCharacters = {
   },
   bird: {
     id: 'bird',
-    name: '새',
+    name: '매새지',
     type: '통신 위주형',
     description: '소통과 연결을 중시하는 디지털 네이티브 타입',
     pattern: {
@@ -101,7 +101,7 @@ export const consumptionCharacters = {
   },
   dog: {
     id: 'dog',
-    name: '강아지',
+    name: '칠도그',
     type: '여가 위주형',
     description: '놀이와 즐거움을 추구하는 활발한 타입',
     pattern: {
@@ -125,7 +125,7 @@ export const consumptionCharacters = {
   },
   cat: {
     id: 'cat',
-    name: '고양이',
+    name: '집콕냥이',
     type: '절약형',
     description: '여가비 제로! 실용적이고 검소한 생활을 추구하는 타입',
     pattern: {
