@@ -1,4 +1,7 @@
-// src/App.js
+// 파일 위치: src/App.js
+// 설명: CategoryEdit 페이지 라우트 추가
+// 수정 내용: CategoryEdit import 추가 및 라우트 설정
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -11,7 +14,7 @@ import Dashboard from './pages/Dashboard';
 import Comparison from './pages/Comparison';
 import Character from './pages/Character';
 import IntegratedAnalysis from './pages/IntegratedAnalysis';
-
+import CategoryEdit from './pages/CategoryEdit'; // 🆕 추가
 
 // 테마 설정
 const theme = createTheme({
@@ -44,28 +47,26 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div 
-  style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw', 
-    height: '100vh',
-    backgroundImage: 'url(/images/msti-bear.png)',
-    backgroundSize: 'cover',  // 화면 전체를 덮도록
-    backgroundPosition: 'center center',  // 중앙 정렬
-    backgroundRepeat: 'no-repeat',
-    opacity: 0.75,  // 매우 연하게 (배경이므로)
-    zIndex: -1,
-    pointerEvents: 'none'
-  }}
-/>
-
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw', 
+        height: '100vh',
+        backgroundImage: 'url(/images/msti-bear.png)',
+        backgroundSize: 'cover',  // 화면 전체를 덮도록
+        backgroundPosition: 'center center',  // 중앙 정렬
+        backgroundRepeat: 'no-repeat',
+        opacity: 0.75,  // 매우 연하게 (배경이므로)
+        zIndex: -1,
+        pointerEvents: 'none'
+      }} />
+       
       <Router>
         <Routes>
           {/* 공개 라우트 */}
           <Route path="/login" element={<Login />} />
-          
+                     
           {/* 로그인이 필요한 라우트들 */}
           <Route path="/upload" element={
             <ProtectedRoute>
@@ -82,7 +83,7 @@ function App() {
               <Comparison />
             </ProtectedRoute>
           } />
-          
+                     
           <Route path="/character" element={
             <ProtectedRoute>
               <Character />
@@ -93,16 +94,21 @@ function App() {
               <IntegratedAnalysis />
             </ProtectedRoute>
           } />
-
-
           
+          {/* 🆕 카테고리 수정 페이지 라우트 추가 */}
+          <Route path="/category-edit" element={
+            <ProtectedRoute>
+              <CategoryEdit />
+            </ProtectedRoute>
+          } />
+                       
           {/* 루트 경로 처리 */}
           <Route path="/" element={
             isAuthenticated() ? 
-              <Navigate to="/upload" replace /> : 
-              <Navigate to="/login" replace />
+               <Navigate to="/upload" replace /> : 
+               <Navigate to="/login" replace />
           } />
-          
+                     
           {/* 404 처리 */}
           <Route path="*" element={<div>페이지를 찾을 수 없습니다.</div>} />
         </Routes>
@@ -110,7 +116,5 @@ function App() {
     </ThemeProvider>
   );
 }
-
-
 
 export default App;

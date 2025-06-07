@@ -23,6 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 
+import { useNavigate } from 'react-router-dom';
 // 기존 페이지에서 사용하던 import들
 import { 
   findMatchingCharacter, 
@@ -38,6 +39,12 @@ import {
 } from '../data/statisticsData';
 
 const IntegratedAnalysis = () => {
+  const navigate = useNavigate(); // 🆕 추가
+  
+  // 카테고리 수정 페이지로 이동
+  const handleGoToCategoryEdit = () => {
+    navigate('/category-edit');
+  };
   // ===== 공통 상태 =====
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -69,8 +76,8 @@ const IntegratedAnalysis = () => {
   // ===== 스크롤 관련 =====
   const sectionRefs = {
     character: useRef(null),
-    dashboard: useRef(null),
-    comparison: useRef(null)
+    comparison: useRef(null),
+    dashboard: useRef(null)
   };
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [activeSection, setActiveSection] = useState('character');
@@ -334,7 +341,7 @@ const IntegratedAnalysis = () => {
       setShowScrollTop(scrollY > 300);
 
       // 현재 보이는 섹션 감지
-      const sections = Object.keys(sectionRefs);
+      const sections = ['character', 'comparison', 'dashboard'];
       let currentSection = 'character';
 
       sections.forEach(section => {
@@ -497,15 +504,6 @@ const IntegratedAnalysis = () => {
           내 캐릭터
         </Button>
         <Button
-          variant={activeSection === 'dashboard' ? 'contained' : 'outlined'}
-          size="small"
-          onClick={() => scrollToSection('dashboard')}
-          startIcon={<DashboardIcon />}
-          sx={{ minWidth: 120 }}
-        >
-          대시보드
-        </Button>
-        <Button
           variant={activeSection === 'comparison' ? 'contained' : 'outlined'}
           size="small"
           onClick={() => scrollToSection('comparison')}
@@ -513,6 +511,15 @@ const IntegratedAnalysis = () => {
           sx={{ minWidth: 120 }}
         >
           소비 비교
+        </Button>
+        <Button
+          variant={activeSection === 'dashboard' ? 'contained' : 'outlined'}
+          size="small"
+          onClick={() => scrollToSection('dashboard')}
+          startIcon={<DashboardIcon />}
+          sx={{ minWidth: 120 }}
+        >
+          대시보드
         </Button>
       </Box>
 
@@ -541,7 +548,6 @@ const IntegratedAnalysis = () => {
             </Alert>
           ) : matchingResult && (
             <Grid container spacing={3}>
-              {/* 개선된 레이아웃 */}
             <Grid container spacing={3}>
               {/* 캐릭터 정보 카드 - 더 좁게 */}
               <Grid item xs={12} md={4}>
@@ -671,16 +677,23 @@ const IntegratedAnalysis = () => {
       {/* 카테고리별 지출 분포 - 새로 개선된 버전 */}
 <Grid item xs={12} md={8}>
   <Paper sx={{ p: 3, height: 740, width : 800, display: 'flex', flexDirection: 'column' }}>
-    <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      📊 카테고리별 지출 분포
-      {spendingPattern?.category_breakdown && (
-        <Chip 
-          label={`${spendingPattern.category_breakdown.length}개 카테고리`} 
-          size="small" 
-          color="primary" 
-        />
-      )}
-    </Typography>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Typography variant="h5">📊 카테고리별 지출 분포</Typography>
+    {spendingPattern?.category_breakdown && (
+      <Chip label={`${spendingPattern.category_breakdown.length}개 카테고리`} size="small" color="primary" />
+    )}
+  </Box>
+  
+  <Button
+    variant="outlined"
+    startIcon={<EditIcon />}
+    onClick={handleGoToCategoryEdit}
+    size="medium"
+  >
+    카테고리 수정
+  </Button>
+</Box>
 
     {/* 데이터 확인 및 차트 렌더링 */}
     {(() => {
@@ -878,194 +891,6 @@ const IntegratedAnalysis = () => {
           )}
         </Box>
       </Box>
-      {/* ===================== 대시보드 섹션 ===================== */}
-      <Box ref={sectionRefs.dashboard} sx={{ minHeight: '100vh', py: 4, bgcolor: 'grey.50' }}>
-        <Container maxWidth="lg">
-          <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
-            📊 내 소비 대시보드
-          </Typography>
-
-          <Grid container spacing={3}>
-            {/* 소비 비율 가장 높음 (금액 기준) */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" component="div" gutterBottom color="primary">
-                    💰 소비 비율 가장 높음
-                  </Typography>
-                  <Typography variant="h2" component="div" color="error.main" sx={{ my: 2 }}>
-                    {spendingPattern?.category_breakdown?.[0]?.category_name || '없음'}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    전체 지출의 {spendingPattern?.category_breakdown?.[0]?.percentage?.toFixed(1) || 0}%
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    ₩{spendingPattern?.category_breakdown?.[0]?.total_amount?.toLocaleString() || 0}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* 소비 횟수 많음 (거래 건수 기준) */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" component="div" gutterBottom color="secondary">
-                    🔄 소비 횟수 많음
-                  </Typography>
-                  <Typography variant="h2" component="div" color="info.main" sx={{ my: 2 }}>
-                    {spendingPattern?.category_breakdown
-                      ?.sort((a, b) => b.transaction_count - a.transaction_count)[0]?.category_name || '없음'}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    총 {spendingPattern?.category_breakdown
-                      ?.sort((a, b) => b.transaction_count - a.transaction_count)[0]?.transaction_count || 0}회 거래
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    평균 ₩{spendingPattern?.category_breakdown
-                      ?.sort((a, b) => b.transaction_count - a.transaction_count)[0]?.transaction_count > 0 
-                      ? Math.round((spendingPattern?.category_breakdown
-                          ?.sort((a, b) => b.transaction_count - a.transaction_count)[0]?.total_amount || 0) / 
-                        (spendingPattern?.category_breakdown
-                          ?.sort((a, b) => b.transaction_count - a.transaction_count)[0]?.transaction_count || 1)).toLocaleString()
-                      : 0} / 회
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* 최근 거래 내역 - 카테고리 수정 기능 */}
-            <Grid item xs={12}>
-              <Paper sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" component="div">
-                    최근 거래 내역 ({transactions?.length || 0}건)
-                  </Typography>
-                  
-                  <Box>
-                    {!isEditMode ? (
-                      <Button
-                        variant="outlined"
-                        startIcon={<EditIcon />}
-                        onClick={startEditMode}
-                        disabled={!transactions || transactions.length === 0}
-                      >
-                        카테고리 수정
-                      </Button>
-                    ) : (
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          onClick={saveChanges}
-                          disabled={!hasChanges}
-                          color="primary"
-                        >
-                          저장
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          onClick={cancelEdit}
-                          color="secondary"
-                        >
-                          취소
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-
-                {isEditMode && (
-                  <Box sx={{ mb: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-                    <Typography variant="body2" color="info.contrastText">
-                      💡 카테고리를 클릭하여 변경할 수 있습니다. 변경 후 저장 버튼을 눌러주세요.
-                    </Typography>
-                  </Box>
-                )}
-
-                {transactions && transactions.length > 0 ? (
-                  <Box 
-                    sx={{ 
-                      maxHeight: 400,
-                      overflow: 'auto',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: 1
-                    }}
-                  >
-                    <List>
-                      {(isEditMode ? editingTransactions : transactions).map((transaction, index) => (
-                        <React.Fragment key={transaction.transaction_date + index}>
-                          <ListItem>
-                            <ListItemText
-                              primary={
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="subtitle1">
-                                    {transaction.store_name} - ₩{transaction.amount?.toLocaleString()}
-                                  </Typography>
-                                  
-                                  {isEditMode ? (
-                                    <FormControl size="small" sx={{ minWidth: 120 }}>
-                                      <Select
-                                        value={transaction.category}
-                                        onChange={(e) => handleCategoryChange(index, e.target.value)}
-                                        sx={{
-                                          bgcolor: getCategoryColor(transaction.category),
-                                          color: 'white',
-                                          '& .MuiSelect-icon': { color: 'white' },
-                                          '& .MuiOutlinedInput-notchedOutline': { border: 'none' }
-                                        }}
-                                      >
-                                        {AVAILABLE_CATEGORIES.map((category) => (
-                                          <MenuItem key={category} value={category}>
-                                            {category}
-                                          </MenuItem>
-                                        ))}
-                                      </Select>
-                                    </FormControl>
-                                  ) : (
-                                    <Chip
-                                      label={transaction.category}
-                                      sx={{
-                                        bgcolor: getCategoryColor(transaction.category),
-                                        color: 'white'
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                              }
-                              secondary={
-                                <React.Fragment>
-                                  <Typography component="span" variant="body2" color="text.primary">
-                                    {new Date(transaction.transaction_date).toLocaleDateString('ko-KR')} 
-                                    {' '}
-                                    {new Date(transaction.transaction_date).toLocaleTimeString('ko-KR', { 
-                                      hour: '2-digit', 
-                                      minute: '2-digit' 
-                                    })}
-                                  </Typography>
-                                  {transaction.description && ` — ${transaction.description}`}
-                                  <br />
-                                  <Typography variant="caption" color="text.secondary">
-                                    결제수단: {transaction.payment_method}
-                                  </Typography>
-                                </React.Fragment>
-                              }
-                            />
-                          </ListItem>
-                          {index < (isEditMode ? editingTransactions : transactions).length - 1 && <Divider />}
-                        </React.Fragment>
-                      ))}
-                    </List>
-                  </Box>
-                ) : (
-                  <Typography variant="body1" sx={{ p: 2 }}>거래 내역이 없습니다.</Typography>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
 
       {/* ===================== 소비 비교 섹션 ===================== */}
       <Box ref={sectionRefs.comparison} sx={{ minHeight: '100vh', py: 4 }}>
@@ -1079,7 +904,7 @@ const IntegratedAnalysis = () => {
           </Typography>
 
           {/* 현재 선택된 특성 표시 */}
-          <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+          <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50', width : 1200 }}>
             <Typography variant="h6" gutterBottom>
               현재 설정된 특성
             </Typography>
@@ -1105,109 +930,287 @@ const IntegratedAnalysis = () => {
             </Typography>
           </Paper>
 
-          {/* 실제 지출 카테고리 정보 표시 */}
-          {realUserCategories.length > 0 && (
-            <Paper sx={{ p: 2, mb: 3, bgcolor: 'info.light', color: 'info.contrastText' }}>
-              <Typography variant="h6" gutterBottom>
-                내 실제 지출 카테고리
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {realUserCategories.map(category => (
-                  <Typography 
-                    key={category}
-                    variant="body2" 
-                    sx={{ 
-                      bgcolor: 'white', 
-                      color: 'text.primary', 
-                      px: 1, 
-                      py: 0.5, 
-                      borderRadius: 1 
-                    }}
-                  >
-                    {category}: ₩ {userData[category]?.toLocaleString()}원
-                  </Typography>
-                ))}
-              </Box>
-              <Typography variant="caption" sx={{ mt: 1, display: 'block', opacity: 0.8 }}>
-                * 업로드한 거래 내역에서 자동으로 계산된 카테고리별 지출액입니다.
-              </Typography>
-            </Paper>
-          )}
-
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <Paper sx={{ p: 3 }}>
+              <Paper sx={{ p: 3 , width : 1200}}>
                 <Typography variant="h6" gutterBottom>
                   카테고리별 소비 패턴 비교
                 </Typography>
                 
-                {/* 카테고리 선택 버튼들 */}
+                {/* 카테고리 선택 버튼들 - 통합된 버전 */}
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    내 지출 카테고리 (우선 표시)
+                  <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    🏷️ 카테고리 선택
+                    <Chip 
+                      label={`총 ${categories.length}개 카테고리`} 
+                      size="small" 
+                      variant="outlined" 
+                      sx={{ fontSize: '0.7rem' }}
+                    />
                   </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                    {realUserCategories.map(category => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? "contained" : "outlined"}
-                        onClick={() => handleCategorySelect(category)}
-                        size="small"
-                        color="primary"
-                        sx={{ mb: 1 }}
-                      >
-                        {category} (₩{userData[category]?.toLocaleString()}원)
-                      </Button>
-                    ))}
+                  
+                  <Box sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                    gap: 1.5,
+                    mt: 2
+
+                  }}>
+                    {categories.map(category => {
+                      const hasSpending = realUserCategories.includes(category);
+                      const amount = userData[category] || 0;
+                      const isSelected = selectedCategory === category;
+                      
+                      return (
+                        <Button
+                          key={category}
+                          variant={isSelected ? "contained" : "outlined"}
+                          onClick={() => handleCategorySelect(category)}
+                          size="medium"
+                          color={hasSpending ? "primary" : "secondary"}
+                          sx={{ 
+                            p: 1.5,
+                            height: 'auto',
+                            minHeight: 64,
+                            minWidth: 180,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            textAlign: 'left',
+                            bgcolor: isSelected ? undefined : (hasSpending ? 'rgba(25, 118, 210, 0.04)' : 'transparent'),
+                            borderColor: hasSpending ? 'primary.main' : 'grey.300',
+                            '&:hover': {
+                              bgcolor: isSelected ? undefined : (hasSpending ? 'rgba(25, 118, 210, 0.08)' : 'rgba(0, 0, 0, 0.04)')
+                            }
+                          }}
+                        >
+                          {/* 상단: 카테고리명과 상태 표시 */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
+                            <Typography variant="body2" sx={{ 
+                              fontWeight: isSelected ? 'bold' : 'medium',
+                              color: isSelected ? 'primary.contrastText' : (hasSpending ? 'primary.main' : 'text.secondary')
+                            }}>
+                              {category}
+                            </Typography>
+                            {hasSpending && (
+                              <Box sx={{ 
+                                width: 6, 
+                                height: 6, 
+                                borderRadius: '50%', 
+                                bgcolor: isSelected ? 'primary.contrastText' : 'primary.main',
+                                ml: 'auto'
+                              }} />
+                            )}
+                          </Box>
+                          
+                          {/* 하단: 금액 표시 */}
+                          <Typography variant="caption" sx={{ 
+                            color: isSelected ? 'primary.contrastText' : 'text.secondary',
+                            opacity: hasSpending ? 1 : 0.6,
+                            mt: 0.5
+                          }}>
+                            {hasSpending ? (
+                              <>
+                                ₩{amount.toLocaleString()}
+                                <Box component="span" sx={{ fontSize: '0.7em', ml: 0.3 }}>
+                                  ({Math.round(amount / 10000)}만원)
+                                </Box>
+                              </>
+                            ) : (
+                              '지출 없음'
+                            )}
+                          </Typography>
+                        </Button>
+                      );
+                    })}
                   </Box>
                   
-                  <Typography variant="subtitle2" gutterBottom>
-                    전체 카테고리
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {categories.map(category => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? "contained" : "outlined"}
-                        onClick={() => handleCategorySelect(category)}
-                        size="small"
-                        color={realUserCategories.includes(category) ? "primary" : "secondary"}
-                        sx={{ mb: 1 }}
-                      >
-                        {category}
-                      </Button>
-                    ))}
+                  {/* 선택된 카테고리 정보 */}
+                  <Box sx={{ 
+                    mt: 2, 
+                    p: 2, 
+                    bgcolor: 'rgba(25, 118, 210, 0.05)', 
+                    borderRadius: 2,
+                    border: '1px solid rgba(25, 118, 210, 0.2)'
+                  }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'primary.main' }}>
+                      📊 선택된 카테고리: {selectedCategory}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {realUserCategories.includes(selectedCategory) 
+                        ? `내 지출: ₩${(userData[selectedCategory] || 0).toLocaleString()} (${Math.round((userData[selectedCategory] || 0) / 10000)}만원)`
+                        : '이 카테고리에는 지출이 없습니다'
+                      }
+                    </Typography>
                   </Box>
                 </Box>
                 
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  선택한 카테고리: {selectedCategory} 
-                  {userData[selectedCategory] ? `(내 지출: ₩${userData[selectedCategory].toLocaleString()}원)` : '(지출 없음)'}
-                </Typography>
-                
-                <Box sx={{ height: 400, mt: 3 }}>
+                <Box sx={{ height: 450, mt: 3 }}>
                   {comparisonData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={comparisonData}
                         layout="vertical"
-                        margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                        margin={{ top: 20, right: 40, left: 150, bottom: 20 }}
+                        barCategoryGap="20%"
                       >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={100} />
-                        <Tooltip formatter={(value) => `${value.toLocaleString()}만원`} />
-                        <Legend />
-                        <Bar dataKey="value" name={`${selectedCategory} 지출액`} fill="#8884d8">
+                        <defs>
+                          <linearGradient id="userGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#FF6B6B" />
+                            <stop offset="100%" stopColor="#FF8E8E" />
+                          </linearGradient>
+                          <linearGradient id="otherGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#4ECDC4" />
+                            <stop offset="100%" stopColor="#7EDDD8" />
+                          </linearGradient>
+                        </defs>
+                        
+                        <CartesianGrid 
+                          strokeDasharray="3 3" 
+                          stroke="#f0f0f0"
+                          horizontal={false}
+                          vertical={true}
+                        />
+                        
+                        <XAxis 
+                          type="number" 
+                          tickFormatter={(value) => `${value}만원`}
+                          axisLine={{ stroke: '#e0e0e0' }}
+                          tickLine={{ stroke: '#e0e0e0' }}
+                          tick={{ fontSize: 11, fill: '#666' }}
+                          domain={[0, 'dataMax + 5']}
+                        />
+                        
+                        <YAxis 
+                          dataKey="name" 
+                          type="category" 
+                          width={140}
+                          axisLine={{ stroke: '#e0e0e0' }}
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: '#333', fontWeight: 'medium' }}
+                          tickFormatter={(value) => {
+                            // Y축 라벨 최적화
+                            const labelMap = {
+                              '나': '🙋‍♂️ 나',
+                              '남성': '👨 남성',
+                              '여성': '👩 여성',
+                              '서울': '🏙️ 서울',
+                              '직장인': '💼 직장인',
+                              '대학생·대학원생(휴학생 포함)': '🎓 대학생',
+                              '자영업자·개인사업자·법인사업자': '🏪 자영업',
+                              '프리랜서·파트타임·아르바이트': '💻 프리랜서',
+                              '전업주부': '🏠 전업주부',
+                              '취업준비생·무직·기타': '📝 구직자',
+                              '100만원 미만': '💰 ~100만원',
+                              '100만원~300만원': '💰 100~300만원',
+                              '300만원 이상': '💰 300만원+'
+                            };
+                            
+                            if (labelMap[value]) return labelMap[value];
+                            
+                            // 연령대 처리
+                            if (value.includes('세')) {
+                              return `👥 ${value}`;
+                            }
+                            
+                            // 지역 처리
+                            if (value.includes('·')) {
+                              const shortName = value.split('·')[0];
+                              return `📍 ${shortName}`;
+                            }
+                            
+                            return value.length > 8 ? value.substring(0, 6) + '..' : value;
+                          }}
+                        />
+                        
+                        <Tooltip 
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload[0]) {
+                              const data = payload[0];
+                              const isUser = label === '나';
+                              
+                              return (
+                                <Box sx={{ 
+                                  bgcolor: 'rgba(255, 255, 255, 0.95)', 
+                                  border: '1px solid #ddd',
+                                  borderRadius: 2,
+                                  p: 2,
+                                  boxShadow: 3,
+                                  minWidth: 180
+                                }}>
+                                  <Typography variant="subtitle2" sx={{ 
+                                    fontWeight: 'bold', 
+                                    mb: 1,
+                                    color: isUser ? '#FF6B6B' : '#4ECDC4'
+                                  }}>
+                                    {isUser ? '🙋‍♂️' : '👥'} {label}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    💰 {selectedCategory} 지출액
+                                  </Typography>
+                                  <Typography variant="h6" sx={{ 
+                                    color: isUser ? '#FF6B6B' : '#4ECDC4',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    {data.value.toLocaleString()}만원
+                                  </Typography>
+                                  
+                                  {!isUser && comparisonData[0] && (
+                                    <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #eee' }}>
+                                      <Typography variant="caption" color="text.secondary">
+                                        내 지출과의 차이
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ 
+                                        color: data.value > comparisonData[0].value ? '#4caf50' : '#f44336',
+                                        fontWeight: 'medium'
+                                      }}>
+                                        {data.value > comparisonData[0].value ? '▲' : '▼'} 
+                                        {Math.abs(data.value - comparisonData[0].value).toLocaleString()}만원
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </Box>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        
+                        <Bar 
+                          dataKey="value" 
+                          name={`${selectedCategory} 지출액`}
+                          radius={[0, 6, 6, 0]}
+                          stroke="rgba(255, 255, 255, 0.3)"
+                          strokeWidth={1}
+                        >
                           {comparisonData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={index === 0 ? 'url(#userGradient)' : 'url(#otherGradient)'}
+                            />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                      <Typography>비교 데이터가 없습니다.</Typography>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      height: '100%',
+                      flexDirection: 'column',
+                      border: '2px dashed #e0e0e0',
+                      borderRadius: 2,
+                      bgcolor: 'grey.50'
+                    }}>
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        📊 비교 데이터가 없습니다
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        다른 카테고리를 선택해보세요
+                      </Typography>
                     </Box>
                   )}
                 </Box>
@@ -1217,33 +1220,63 @@ const IntegratedAnalysis = () => {
                   <Typography variant="h6" gutterBottom>
                     분석 결과
                   </Typography>
+                  
+                  {/* 카테고리 박스 */}
+                  <Box sx={{ 
+                    mb: 2, 
+                    p: 2, 
+                    bgcolor: 'primary.light', 
+                    borderRadius: 1,
+                    display: 'inline-block'
+                  }}>
+                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      {selectedCategory}
+                    </Typography>
+                  </Box>
+                  
                   <Typography variant="body2" paragraph>
-                    {selectedCategory} 항목에서 내 지출(₩{(userData[selectedCategory] || 0).toLocaleString()}원)은
                     {comparisonData.slice(1).map((item, index) => {
                       const userAmount = comparisonData[0]?.value || 0;
                       const groupAmount = item.value || 0;
                       
                       if (groupAmount === 0) {
                         return (
-                          <span key={index}>
-                            {' '}{item.name} 평균 데이터가 없습니다
-                            {index < comparisonData.length - 2 ? ',' : index === comparisonData.length - 2 ? '.' : ''}
-                          </span>
+                          <Box key={index} sx={{ mb: 1, p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              📝 {item.name}: 평균 데이터가 없습니다
+                            </Typography>
+                          </Box>
                         );
                       }
                       
                       const diff = ((userAmount - groupAmount) / groupAmount * 100).toFixed(1);
                       const isHigher = userAmount > groupAmount;
+                      const diffText = isHigher ? `${diff}% 많습니다` : `${Math.abs(diff)}% 적습니다`;
                       
                       return (
-                        <span key={index}>
-                          {' '}
-                          {item.name} 평균({item.value.toLocaleString()}만원)보다 
-                          <strong style={{ color: isHigher ? 'red' : 'green' }}>
-                            {' '}{isHigher ? `${diff}% 많습니다` : `${Math.abs(diff)}% 적습니다`}
-                          </strong>
-                          {index < comparisonData.length - 2 ? ',' : index === comparisonData.length - 2 ? '.' : ''}
-                        </span>
+                        <Box 
+                          key={index} 
+                          sx={{ 
+                            mb: 1, 
+                            p: 1.5, 
+                            bgcolor: isHigher ? 'rgba(255, 107, 107, 0.1)' : 'rgba(76, 175, 80, 0.1)', 
+                            borderRadius: 1,
+                            borderLeft: `4px solid ${isHigher ? '#ff6b6b' : '#4caf50'}`,
+                            border: `1px solid ${isHigher ? 'rgba(255, 107, 107, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'text.primary' }}>
+                            {isHigher ? '📈' : '📉'} {item.name} 평균({item.value.toLocaleString()}만원)보다{' '}
+                            <strong style={{ color: isHigher ? '#d32f2f' : '#2e7d32' }}>
+                              {diffText}
+                            </strong>
+                          </Typography>
+                          {Math.abs(parseFloat(diff)) > 50 && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                              💡 {isHigher ? '평균보다 상당히 높은 지출입니다' : '평균보다 상당히 낮은 지출입니다'}
+                            </Typography>
+                          )}
+                        </Box>
                       );
                     })}
                   </Typography>
@@ -1253,6 +1286,8 @@ const IntegratedAnalysis = () => {
           </Grid>
         </Container>
       </Box>
+
+      
     </>
   );
 };
