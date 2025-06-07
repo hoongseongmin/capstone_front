@@ -609,9 +609,6 @@ const CategoryEdit = () => {
                                   </Typography>
                                 )}
                                 
-                                <Typography variant="body2" color="text.secondary">
-                                  💳 {transaction.payment_method}
-                                </Typography>
                               </Box>
                             }
                           />

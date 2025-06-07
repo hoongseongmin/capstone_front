@@ -14,7 +14,7 @@ import Dashboard from './pages/Dashboard';
 import Comparison from './pages/Comparison';
 import Character from './pages/Character';
 import IntegratedAnalysis from './pages/IntegratedAnalysis';
-import CategoryEdit from './pages/CategoryEdit'; // 🆕 추가
+import CategoryEdit from './pages/CategoryEdit';
 
 // 테마 설정
 const theme = createTheme({
@@ -95,8 +95,7 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* 🆕 카테고리 수정 페이지 라우트 추가 */}
-          <Route path="/category-edit" element={
+          <Route path="/CategoryEdit" element={
             <ProtectedRoute>
               <CategoryEdit />
             </ProtectedRoute>

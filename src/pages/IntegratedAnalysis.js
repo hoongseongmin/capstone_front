@@ -43,7 +43,7 @@ const IntegratedAnalysis = () => {
   
   // 카테고리 수정 페이지로 이동
   const handleGoToCategoryEdit = () => {
-    navigate('/category-edit');
+    navigate('/CategoryEdit');
   };
   // ===== 공통 상태 =====
   const [loading, setLoading] = useState(true);
