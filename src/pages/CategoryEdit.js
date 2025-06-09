@@ -25,7 +25,7 @@ import { useNavigate } from 'react-router-dom';
 const AVAILABLE_CATEGORIES = [
   '식비', '교통비', '통신비', '주거비', '의료비', '교육비', 
   '생활용품비', '이미용/화장품', '온라인 컨텐츠', '여가비', 
-  '경조사비', '금융비', '기타'
+  '경조사비', '금융비', '송금', '기타' // 🆕 송금 추가
 ];
 
 // 카테고리별 색상 매핑
@@ -43,6 +43,7 @@ const getCategoryColor = (category) => {
     '여가비': '#85C1E9',
     '경조사비': '#F8C471',
     '금융비': '#82E0AA',
+    '송금': '#FFA726',
     '기타': '#D5DBDB'
   };
   return colorMap[category] || '#D5DBDB';
@@ -69,40 +70,53 @@ const CategoryEdit = () => {
   // 🆕 차트 데이터 생성 함수
   const generateChartData = useCallback((transactionList) => {
     const categorySummary = {};
-    let totalAmount = 0;
-
+     let totalAmount = 0;
+     let remittanceAmount = 0; // 🆕 송금 총액 별도 추적
     // 카테고리별 집계
-    transactionList.forEach(transaction => {
-      const category = transaction.category;
-      const amount = transaction.amount;
+  transactionList.forEach(transaction => {
+    const category = transaction.category;
+    const amount = transaction.amount;
 
-      if (!categorySummary[category]) {
-        categorySummary[category] = {
-          count: 0,
-          total_amount: 0
-        };
-      }
+    if (!categorySummary[category]) {
+      categorySummary[category] = {
+        count: 0,
+        total_amount: 0
+      };
+    }
 
-      categorySummary[category].count += 1;
-      categorySummary[category].total_amount += amount;
-      totalAmount += amount;
-    });
+    categorySummary[category].count += 1;
+    categorySummary[category].total_amount += amount;
 
-    // 차트 데이터 생성
-    const chartData = Object.entries(categorySummary)
-      .map(([categoryName, data]) => ({
-        category: categoryName,
-        amount: Math.round(data.total_amount / 10000), // 만원 단위
-        originalAmount: data.total_amount,
-        percentage: totalAmount > 0 ? (data.total_amount / totalAmount) * 100 : 0,
-        count: data.count,
-        color: getCategoryColor(categoryName)
-      }))
-      .sort((a, b) => b.amount - a.amount) // 내림차순 정렬
-      .slice(0, 10); // 상위 10개
+    // 🆕 송금과 실제 소비 구분
+    if (category === '송금') {
+      remittanceAmount += amount;
+    } else {
+      totalAmount += amount; // 실제 소비만 합계
+    }
+  });
 
-    return chartData;
-  }, []);
+  // 🆕 차트 데이터 생성 (송금 제외)
+  const chartData = Object.entries(categorySummary)
+    .filter(([categoryName]) => categoryName !== '송금') // 🆕 송금 제외
+    .map(([categoryName, data]) => ({
+      category: categoryName,
+      amount: Math.round(data.total_amount / 10000), // 만원 단위
+      originalAmount: data.total_amount,
+      percentage: totalAmount > 0 ? (data.total_amount / totalAmount) * 100 : 0, // 🆕 실제 소비 기준 100%
+      count: data.count,
+      color: getCategoryColor(categoryName)
+    }))
+    .sort((a, b) => b.amount - a.amount) // 내림차순 정렬
+    .slice(0, 10); // 상위 10개
+
+  // 🆕 콘솔에 송금 정보 출력 (디버깅용)
+  if (remittanceAmount > 0) {
+    console.log(`💸 송금 정보: ${remittanceAmount.toLocaleString()}원 (${categorySummary['송금']?.count || 0}건)`);
+    console.log(`📊 소비: ${totalAmount.toLocaleString()}원`);
+  }
+
+  return chartData;
+}, []);
 
   // 카테고리 요약 재계산 함수
   const recalculateCategorySummary = useCallback((updatedTransactions) => {
@@ -207,14 +221,14 @@ const CategoryEdit = () => {
     navigate(-1); // 이전 페이지로
   };
 
-  // 통합페이지로 이동
-  const handleGoToIntegrated = () => {
-    if (hasChanges) {
-      const confirmLeave = window.confirm('저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?');
-      if (!confirmLeave) return;
-    }
-    navigate('/integrated');
-  };
+  // // 통합페이지로 이동
+  // const handleGoToIntegrated = () => {
+  //   if (hasChanges) {
+  //     const confirmLeave = window.confirm('저장하지 않은 변경사항이 있습니다. 정말 나가시겠습니까?');
+  //     if (!confirmLeave) return;
+  //   }
+  //   navigate('/integrated');
+  // };
 
   // 데이터 로딩 함수
   const loadData = useCallback(async () => {
@@ -271,6 +285,22 @@ const CategoryEdit = () => {
 
   return (
     <>
+    {/* 🆕 배경이미지 추가 */}
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw', 
+      height: '100vh',
+      backgroundImage: 'url(/images/msti-horse.png)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center center',
+      backgroundRepeat: 'no-repeat',
+      opacity: 0.75,
+      zIndex: -1,
+      pointerEvents: 'none'
+    }} />
+    <>
       <Navigation />
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         {/* 페이지 헤더 */}
@@ -281,7 +311,7 @@ const CategoryEdit = () => {
                 🏷️ 거래 카테고리 수정
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                좌측에서 실시간 변화를 확인하며 우측에서 카테고리를 수정하세요.
+                송금 내역 중 수정이 필요한 부분을 수정하세요.
               </Typography>
             </Box>
             <Button
@@ -333,15 +363,41 @@ const CategoryEdit = () => {
                 <>
                   {/* 요약 정보 */}
                   <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                    <Typography variant="caption" color="text.secondary">총 지출</Typography>
-                    <Typography variant="h6" color="primary">
-                      {Math.round(chartData.reduce((sum, item) => sum + item.originalAmount, 0)).toLocaleString()}원
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {chartData.length}개 카테고리
-                    </Typography>
-                  </Box>
-
+  <Typography variant="caption" color="text.secondary">소비 (송금 제외)</Typography>
+  <Typography variant="h6" color="primary">
+    {(() => {
+      // 🆕 실제 소비 총액 계산 (송금 제외)
+      const actualConsumption = chartData.reduce((sum, item) => sum + item.originalAmount, 0);
+      return actualConsumption.toLocaleString();
+    })()}원
+  </Typography>
+  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+    {chartData.length}개 카테고리
+  </Typography>
+  
+  {/* 🆕 송금 정보 추가 표시 */}
+  {(() => {
+    // localStorage에서 전체 거래 정보 가져와서 송금 정보 계산
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      const transactions = JSON.parse(userData);
+      const remittanceTransactions = transactions.filter(t => t.category === '송금');
+      const remittanceTotal = remittanceTransactions.reduce((sum, t) => sum + t.amount, 0);
+      
+      if (remittanceTotal > 0) {
+        return (
+          <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid #ddd' }}>
+            <Typography variant="caption" color="text.secondary">송금</Typography>
+            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 'medium' }}>
+              {remittanceTotal.toLocaleString()}원 ({remittanceTransactions.length}건)
+            </Typography>
+          </Box>
+        );
+      }
+    }
+    return null;
+  })()}
+</Box>
                   {/* 차트 */}
                   <Box sx={{ flex: 1, minHeight: 350 }}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -640,6 +696,7 @@ const CategoryEdit = () => {
           </Grid>
         </Grid>
       </Container>
+    </>
     </>
   );
 };

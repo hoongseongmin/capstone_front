@@ -10,9 +10,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 // 페이지 컴포넌트 import
 import Login from './pages/Login';
 import FileUpload from './pages/FileUpload';
-import Dashboard from './pages/Dashboard';
-import Comparison from './pages/Comparison';
-import Character from './pages/Character';
 import IntegratedAnalysis from './pages/IntegratedAnalysis';
 import CategoryEdit from './pages/CategoryEdit';
 
@@ -47,20 +44,6 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw', 
-        height: '100vh',
-        backgroundImage: 'url(/images/msti-bear.png)',
-        backgroundSize: 'cover',  // 화면 전체를 덮도록
-        backgroundPosition: 'center center',  // 중앙 정렬
-        backgroundRepeat: 'no-repeat',
-        opacity: 0.75,  // 매우 연하게 (배경이므로)
-        zIndex: -1,
-        pointerEvents: 'none'
-      }} />
        
       <Router>
         <Routes>
@@ -73,22 +56,7 @@ function App() {
               <FileUpload />
             </ProtectedRoute>
           } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/comparison" element={
-            <ProtectedRoute>
-              <Comparison />
-            </ProtectedRoute>
-          } />
-                     
-          <Route path="/character" element={
-            <ProtectedRoute>
-              <Character />
-            </ProtectedRoute>
-          } />
+            
           <Route path="/integrated" element={
             <ProtectedRoute>
               <IntegratedAnalysis />

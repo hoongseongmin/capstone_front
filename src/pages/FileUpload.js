@@ -1,5 +1,6 @@
 // 파일 위치: /src/pages/FileUpload.js
-// 설명: 라디오 버튼을 Select 콤보박스로 변경하고 크기 및 투명도 조정
+// 설명: navigate('/character') → navigate('/integrated')로 변경
+// 수정 내용: 파일 업로드 후 통합 분석 페이지로 리다이렉트
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -149,9 +150,9 @@ const handleSubmit = async (event) => {
      setUploadSuccess(true);
      setUploading(false);
      
-     // 3초 후 대시보드로 자동 이동
+     // 3초 후 통합 분석 페이지로 자동 이동
      setTimeout(() => {
-       navigate('/character');
+       navigate('/integrated');
      }, 3000);
      
    } catch (apiError) {
@@ -196,9 +197,9 @@ const handleSubmit = async (event) => {
          setUploadSuccess(true);
          setUploading(false);
          
-         // 3초 후 대시보드로 자동 이동
+         // 3초 후 통합 분석 페이지로 자동 이동
          setTimeout(() => {
-           navigate('/character');
+           navigate('/integrated');
          }, 3000);
          
        } catch (error) {
@@ -228,7 +229,7 @@ const handleSubmit = async (event) => {
 };
 
  const handleSkip = () => {
-   navigate('/character');
+   navigate('/integrated');
  };
 
  const handleSelectionChange = (event) => {
@@ -255,6 +256,24 @@ const handleSubmit = async (event) => {
  };
 
  return (
+
+<>
+  {/* 배경이미지 */}
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw', 
+    height: '100vh',
+    backgroundImage: 'url(/images/msti-bear.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    opacity: 0.75,
+    zIndex: -1,
+    pointerEvents: 'none'
+  }} />
+
    <Container maxWidth="lg" sx={{ mt: 4, mb: 4, ml: 'auto', mr: 1 }}>
      <Paper sx={{ 
        p: 4,
@@ -401,15 +420,15 @@ const handleSubmit = async (event) => {
            {uploadSuccess ? (
              <Box sx={{ textAlign: 'center', my: 2 }}>
                <Alert severity="success" sx={{ mb: 2 }}>
-                 파일이 성공적으로 업로드되었습니다. 대시보드로 이동합니다...
+                 파일이 성공적으로 업로드되었습니다. 통합 분석 페이지로 이동합니다...
                </Alert>
                <Button 
                  variant="contained" 
                  color="primary"
                  startIcon={<DashboardIcon />}
-                 onClick={() => navigate('/dashboard')}
+                 onClick={() => navigate('/integrated')}
                >
-                 대시보드로 이동
+                 통합 분석으로 이동
                </Button>
              </Box>
            ) : (
@@ -511,11 +530,12 @@ const handleSubmit = async (event) => {
            • 거래 내역 파일은 엑셀 형식(.xlsx, .xls)으로 업로드해주세요.
          </Typography>
          <Typography variant="body2" color="text.secondary">
-           • 파일 업로드 없이 기본 데이터로 대시보드를 보려면 '건너뛰기' 버튼을 클릭하세요.
+           • 파일 업로드 없이 기본 데이터로 분석을 보려면 '건너뛰기' 버튼을 클릭하세요.
          </Typography>
        </Box>
      </Paper>
    </Container>
+   </>
  );
 };
 

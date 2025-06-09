@@ -10,19 +10,7 @@ const Navigation = () => {
         <Typography variant="h6" color="inherit" noWrap sx={{ flexGrow: 1 }}>
           소비 패턴 분석
         </Typography>
-        <Box>
-          <Button color="inherit" component={RouterLink} to="/character">
-            내 캐릭터
-          </Button>
-
-          <Button color="inherit" component={RouterLink} to="/dashboard">
-            대시보드
-          </Button>
-
-          <Button color="inherit" component={RouterLink} to="/comparison">
-            소비 비교
-          </Button>
-          
+        <Box>          
           <Button color="inherit" component={RouterLink} to="/integrated">
             통합 분석
           </Button>

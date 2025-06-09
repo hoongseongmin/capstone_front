@@ -1,12 +1,13 @@
 // 파일 위치: src/pages/IntegratedAnalysis.js
-// 설명: 캐릭터 분석, 대시보드, 소비 비교를 통합한 원페이지 컴포넌트 (레이아웃 개선)
+// 설명: 캐릭터 분석, 대시보드, 소비 비교를 통합한 원페이지 컴포넌트 + 카드 추천 기능 추가
+// 수정 내용: 카드 추천 섹션 추가, 플로팅 네비게이션에서 대시보드 제거
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Container, Grid, Paper, Typography, Box, Card, CardContent,
   Avatar, Chip, List, ListItem, ListItemIcon, ListItemText,
   LinearProgress, Alert, Fab, CircularProgress, Button, Divider,
-  Select, MenuItem, FormControl
+  Select, MenuItem, FormControl, CardMedia, CardActions
 } from '@mui/material';
 import { 
   BarChart, Bar, 
@@ -17,11 +18,12 @@ import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import PersonIcon from '@mui/icons-material/Person';
-import DashboardIcon from '@mui/icons-material/Dashboard';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import CreditCardIcon from '@mui/icons-material/CreditCard'; // 🆕 카드 아이콘 추가
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import LaunchIcon from '@mui/icons-material/Launch'; // 🆕 외부 링크 아이콘
 
 import { useNavigate } from 'react-router-dom';
 // 기존 페이지에서 사용하던 import들
@@ -38,13 +40,17 @@ import {
   incomeData
 } from '../data/statisticsData';
 
+// 🆕 카드 데이터 import 추가
+import { getRecommendedCards } from '../data/cardData';
+
 const IntegratedAnalysis = () => {
-  const navigate = useNavigate(); // 🆕 추가
+  const navigate = useNavigate();
   
   // 카테고리 수정 페이지로 이동
   const handleGoToCategoryEdit = () => {
-    navigate('/CategoryEdit');
+    navigate('/categoryedit');
   };
+  
   // ===== 공통 상태 =====
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -73,11 +79,15 @@ const IntegratedAnalysis = () => {
   const [userData, setUserData] = useState({});
   const [realUserCategories, setRealUserCategories] = useState([]);
 
+  // 🆕 카드 추천 상태 추가
+  const [recommendedCards, setRecommendedCards] = useState([]);
+
   // ===== 스크롤 관련 =====
   const sectionRefs = {
     character: useRef(null),
     comparison: useRef(null),
-    dashboard: useRef(null)
+    dashboard: useRef(null),
+    cards: useRef(null) // 🆕 카드 추천 섹션 ref 추가
   };
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [activeSection, setActiveSection] = useState('character');
@@ -236,30 +246,48 @@ const IntegratedAnalysis = () => {
   const recalculateCategorySummary = useCallback((updatedTransactions) => {
     const categorySummary = {};
     let totalAmount = 0;
+     // 🆕 송금과 실제 소비 분리
+    let remittanceAmount = 0;
+    let remittanceCount = 0;
 
     updatedTransactions.forEach(transaction => {
       const category = transaction.category;
       const amount = transaction.amount;
 
       if (!categorySummary[category]) {
-        categorySummary[category] = {
-          count: 0,
-          total_amount: 0
-        };
-      }
+      categorySummary[category] = {
+        count: 0,
+        total_amount: 0
+      };
+    }
 
-      categorySummary[category].count += 1;
-      categorySummary[category].total_amount += amount;
-      totalAmount += amount;
-    });
+    categorySummary[category].count += 1;
+    categorySummary[category].total_amount += amount;
 
-    Object.keys(categorySummary).forEach(category => {
+    // 🆕 송금과 실제 소비 구분
+    if (category === '송금') {
+      remittanceAmount += amount;
+      remittanceCount += 1;
+    } else {
+      totalAmount += amount; // 실제 소비만 합계
+    }
+  });
+
+  // 🆕 실제 소비 카테고리들의 비율 계산 (송금 제외)
+  Object.keys(categorySummary).forEach(category => {
+    if (category !== '송금') {
       categorySummary[category].percentage = totalAmount > 0 ? 
         (categorySummary[category].total_amount / totalAmount) * 100 : 0;
-    });
+    } else {
+      // 송금은 전체 거래 대비 비율로 계산
+      const totalWithRemittance = totalAmount + remittanceAmount;
+      categorySummary[category].percentage = totalWithRemittance > 0 ? 
+        (categorySummary[category].total_amount / totalWithRemittance) * 100 : 0;
+    }
+  });
 
-    return categorySummary;
-  }, []);
+  return categorySummary;
+}, []);
 
   // ===== 편집 관련 함수들 =====
   const saveChanges = useCallback(() => {
@@ -340,8 +368,8 @@ const IntegratedAnalysis = () => {
       const scrollY = window.scrollY;
       setShowScrollTop(scrollY > 300);
 
-      // 현재 보이는 섹션 감지
-      const sections = ['character', 'comparison', 'dashboard'];
+      // 현재 보이는 섹션 감지 (카드 섹션 추가)
+      const sections = ['character', 'comparison', 'dashboard', 'cards'];
       let currentSection = 'character';
 
       sections.forEach(section => {
@@ -363,43 +391,64 @@ const IntegratedAnalysis = () => {
 
   // ===== 데이터 로딩 =====
   const loadRealData = useCallback(async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
+    
+    const userData = localStorage.getItem('userData');
+    const categorySummary = localStorage.getItem('categorySummary');
+    
+    if (userData) {
+      const parsedTransactions = JSON.parse(userData);
+      setTransactions(parsedTransactions);
+    }
+    
+    if (categorySummary) {
+      const parsedCategorySummary = JSON.parse(categorySummary);
       
-      const userData = localStorage.getItem('userData');
-      const categorySummary = localStorage.getItem('categorySummary');
+      // 🆕 송금 정보 분리
+      const remittanceData = parsedCategorySummary['송금'] || null;
       
-      if (userData) {
-        const parsedTransactions = JSON.parse(userData);
-        setTransactions(parsedTransactions);
-      }
+      // 🆕 송금 제외한 실제 소비 카테고리들만 필터링
+      const consumptionCategories = Object.entries(parsedCategorySummary)
+        .filter(([categoryName]) => categoryName !== '송금');
       
-      if (categorySummary) {
-        const parsedCategorySummary = JSON.parse(categorySummary);
+      // 🆕 실제 소비 총액 계산
+      const totalConsumption = consumptionCategories
+        .reduce((sum, [_, data]) => sum + data.total_amount, 0);
+      
+      // 🆕 실제 소비 기준으로 비율 재계산
+      const categoryBreakdown = consumptionCategories.map(([categoryName, data]) => {
+        const recalculatedPercentage = totalConsumption > 0 ? 
+          (data.total_amount / totalConsumption) * 100 : 0;
         
-        const categoryBreakdown = Object.entries(parsedCategorySummary).map(([categoryName, data]) => ({
+        return {
           category_id: categoryName,
           category_name: categoryName,
           total_amount: data.total_amount,
-          percentage: data.percentage,
+          percentage: recalculatedPercentage, // 🆕 재계산된 비율
           transaction_count: data.count || data.transaction_count || 0
-        }));
-        
-        const totalSpending = categoryBreakdown.reduce((sum, cat) => sum + cat.total_amount, 0);
-        
-        setSpendingPattern({
-          total_spending: totalSpending,
-          category_breakdown: categoryBreakdown
-        });
-      }
+        };
+      });
       
-    } catch (err) {
-      console.error("❌ 실제 데이터 로딩 중 오류 발생:", err);
-      setError('데이터를 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
+      // 🆕 spendingPattern 구조 업데이트
+      setSpendingPattern({
+        total_spending: totalConsumption, // 🆕 실제 소비 총액 (송금 제외)
+        category_breakdown: categoryBreakdown,
+        remittance_info: remittanceData ? { // 🆕 송금 정보 별도 저장
+          total_amount: remittanceData.total_amount,
+          transaction_count: remittanceData.count || 0,
+          percentage_of_total: remittanceData.percentage || 0
+        } : null
+      });
     }
-  }, []);
+    
+  } catch (err) {
+    console.error("❌ 실제 데이터 로딩 중 오류 발생:", err);
+    setError('데이터를 불러오는 중 오류가 발생했습니다.');
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   // ===== 초기화 useEffect =====
   useEffect(() => {
@@ -423,6 +472,13 @@ const IntegratedAnalysis = () => {
       } else {
         const result = findMatchingCharacter(userSpending);
         setMatchingResult(result);
+        
+        // 🆕 캐릭터 기반 카드 추천
+        if (result && result.character && result.character.name) {
+          const cards = getRecommendedCards(result.character.name);
+          setRecommendedCards(cards);
+          console.log(`${result.character.name}에게 추천하는 카드:`, cards);
+        }
       }
     } catch (err) {
       console.error('❌ 캐릭터 분석 중 오류:', err);
@@ -481,9 +537,25 @@ const IntegratedAnalysis = () => {
 
   return (
     <>
+  {/* 새로운 배경이미지 */}
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw', 
+    height: '100vh',
+    backgroundImage: 'url(/images/msti-horse.png)', // ← 새 이미지 경로
+    backgroundSize: 'cover',
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    opacity: 0.8, // ← 원하는 투명도로 조정
+    zIndex: -1,
+    pointerEvents: 'none'
+  }} />
+    <>
       <Navigation />
       
-      {/* 플로팅 네비게이션 */}
+      {/* 플로팅 네비게이션 - 대시보드 제거, 카드 추천 추가 */}
       <Box sx={{ 
         position: 'fixed', 
         right: 20, 
@@ -512,14 +584,15 @@ const IntegratedAnalysis = () => {
         >
           소비 비교
         </Button>
+        {/* 🆕 카드 추천 버튼 추가 */}
         <Button
-          variant={activeSection === 'dashboard' ? 'contained' : 'outlined'}
+          variant={activeSection === 'cards' ? 'contained' : 'outlined'}
           size="small"
-          onClick={() => scrollToSection('dashboard')}
-          startIcon={<DashboardIcon />}
+          onClick={() => scrollToSection('cards')}
+          startIcon={<CreditCardIcon />}
           sx={{ minWidth: 120 }}
         >
-          대시보드
+          카드 추천
         </Button>
       </Box>
 
@@ -702,20 +775,20 @@ const IntegratedAnalysis = () => {
       
       // 차트 데이터 생성 (새로운 방식)
       const chartData = spendingPattern?.category_breakdown 
-        ? spendingPattern.category_breakdown
-            .filter(item => item.total_amount > 0)
-            .map((item, index) => ({
-              id: item.category_id || index,
-              category: item.category_name || '미분류',
-              amount: Math.round(item.total_amount / 10000), // 만원 단위
-              originalAmount: item.total_amount,
-              percentage: item.percentage || 0,
-              count: item.transaction_count || 0,
-              color: getCategoryColor(item.category_name) || COLORS[index % COLORS.length]
-            }))
-            .sort((a, b) => b.amount - a.amount)
-            .slice(0, 10) // 상위 10개만
-        : [];
+    ? spendingPattern.category_breakdown
+        .filter(item => item.total_amount > 0)
+        .map((item, index) => ({
+          id: item.category_id || index,
+          category: item.category_name || '미분류',
+          amount: Math.round(item.total_amount / 10000), // 만원 단위
+          originalAmount: item.total_amount,
+          percentage: item.percentage || 0, // 🆕 이미 재계산된 비율 사용
+          count: item.transaction_count || 0,
+          color: getCategoryColor(item.category_name) || COLORS[index % COLORS.length]
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10) // 상위 10개만
+    : [];
 
       console.log('📊 생성된 차트 데이터:', chartData);
 
@@ -751,28 +824,46 @@ const IntegratedAnalysis = () => {
       return (
         <>
           {/* 요약 정보 */}
-          <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={3}>
-                <Typography variant="caption" color="text.secondary">총 지출</Typography>
-                <Typography variant="h6" color="primary">
-                  {Math.round(spendingPattern.total_spending)}원
-                </Typography>
-              </Grid>
-              <Grid item xs={3}>
-                <Typography variant="caption" color="text.secondary">최고 지출 카테고리</Typography>
-                <Typography variant="h6" color="error.main">
-                  {chartData[0]?.category}
-                </Typography>
-              </Grid>
-              <Grid item xs={3}>
-                <Typography variant="caption" color="text.secondary">최고 비율</Typography>
-                <Typography variant="h6" color="warning.main">
-                  {chartData[0]?.percentage?.toFixed(1)}%
-                </Typography>
-              </Grid>
+      <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={3}>
+            <Typography variant="caption" color="text.secondary">소비</Typography>
+            <Typography variant="h6" color="primary">
+              {Math.round(spendingPattern.total_spending).toLocaleString()}원
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              (송금 제외)
+            </Typography>
+          </Grid>
+          
+          {/* 🆕 송금 정보 추가 */}
+          {spendingPattern.remittance_info && (
+            <Grid item xs={3}>
+              <Typography variant="caption" color="text.secondary">송금</Typography>
+              <Typography variant="h6" color="warning.main">
+                {Math.round(spendingPattern.remittance_info.total_amount).toLocaleString()}원
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                ({spendingPattern.remittance_info.transaction_count}건)
+              </Typography>
             </Grid>
-          </Box>
+          )}
+          
+          <Grid item xs={3}>
+            <Typography variant="caption" color="text.secondary">최고 지출 카테고리</Typography>
+            <Typography variant="h6" color="error.main">
+              {chartData[0]?.category}
+            </Typography>
+          </Grid>
+          <Grid item xs={3}>
+            <Typography variant="caption" color="text.secondary">최고 비율</Typography>
+            <Typography variant="h6" color="warning.main">
+              {chartData[0]?.percentage?.toFixed(1)}%
+            </Typography>
+          </Grid>
+        </Grid>
+      </Box>
+
 
           {/* 차트 영역 */}
           <Box sx={{ flex: 1, minHeight: 400, position: 'relative' }}>
@@ -1287,7 +1378,196 @@ const IntegratedAnalysis = () => {
         </Container>
       </Box>
 
-      
+      {/* ===================== 🆕 카드 추천 섹션 ===================== */}
+      <Box ref={sectionRefs.cards} sx={{ minHeight: '100vh', py: 4}}>
+        <Box sx={{ px: 4, maxWidth: '1100px', mx: 'auto' }}>
+          <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
+            💳 내 소비캐릭터 맞춤 카드 추천
+          </Typography>
+
+          {matchingResult && recommendedCards.length > 0 ? (
+            <>
+              {/* 캐릭터 기반 추천 설명 - 캐릭터 이미지 포함 */}
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                mb: 4,
+                p: 3,
+                bgcolor: 'rgba(25, 118, 210, 0.05)',
+                borderRadius: 3,
+                border: '2px solid rgba(25, 118, 210, 0.1)'
+              }}>
+                {/* 캐릭터 이미지와 정보 */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 3,
+                  mb: 2,
+                  flexDirection: { xs: 'column', sm: 'row' }
+                }}>
+                  {/* 캐릭터 아바타 */}
+                  <Avatar 
+                    sx={{ 
+                      width: 80, 
+                      height: 80,
+                      backgroundColor: matchingResult.character.color,
+                      fontSize: '2rem',
+                      border: '3px solid white',
+                      boxShadow: 2
+                    }}
+                  >
+                    <img 
+                      src={characterImages[matchingResult.character.id]} 
+                      alt={matchingResult.character.name}
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'cover',
+                        borderRadius: '50%'
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentNode.innerHTML = matchingResult.character.emoji;
+                      }}
+                    />
+                  </Avatar>
+                  
+                  {/* 캐릭터 정보 텍스트 */}
+                  <Box sx={{ textAlign: { xs: 'center', sm: 'left'} }}>
+                    <Typography variant="h5" color="primary" gutterBottom sx={{ fontWeight: 'bold' }}>
+                      {matchingResult.character.name} 타입에게 추천하는 카드
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                      당신의 소비 패턴에 최적화된 카드를 추천해드려요
+                    </Typography>
+                    
+                    {/* 캐릭터 타입 칩 */}
+                    <Box sx={{ mt: 1 }}>
+                      <Chip 
+                        label={`"${matchingResult.character.description}"`} 
+                        variant="outlined"
+                        color="primary"
+                        size="small"
+                        sx={{ 
+                          fontSize: '0.75rem',
+                          maxWidth: 300,
+                          height: 'auto',
+                          '& .MuiChip-label': { 
+                            display: 'block',
+                            whiteSpace: 'normal',
+                            lineHeight: 1.2,
+                            py: 0.5
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                </Box>
+
+              </Box>
+
+              {/* 카드 3개 그리드 */}
+              <Grid container spacing={3} justifyContent="center">
+                {recommendedCards.map((card, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={card.id}>
+                    <Card 
+                      sx={{ 
+                        height: '100%', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: 3
+                        }
+                      }}
+                    >
+                      {/* 카드 이미지 영역 */}
+                      <CardMedia
+                        sx={{
+                          height: 200,
+                          bgcolor: 'grey.100',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {/* 임시 카드 아이콘 (이미지 준비되면 img 태그로 변경) */}
+                        <img src={card.image} alt={card.name} />
+                      </CardMedia>
+
+                      <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                        {/* 카드명 */}
+                        <Typography variant="h6" component="h3" gutterBottom sx={{ fontWeight: 'bold' }}>
+                          {card.name}
+                        </Typography>
+
+                        {/* 카드사 */}
+                        <Chip 
+                          label={card.company} 
+                          size="small" 
+                          variant="outlined" 
+                          sx={{ mb: 2 }}
+                        />
+
+                        {/* 주요 혜택 */}
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                            주요혜택
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            color="text.secondary" 
+                            sx={{ 
+                              lineHeight: 1.8,
+                              whiteSpace: 'pre-line'  // 줄바꿈 처리
+                            }}
+                          >
+                            {card.benefits}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+
+                      {/* 카드 액션 버튼 */}
+                      <CardActions sx={{ p: 2, pt: 0 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          endIcon={<LaunchIcon />}
+                          onClick={() => window.open(card.link, '_blank')}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          자세히 보기
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {/* 추가 안내 */}
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  카드 신청 시 개인의 신용도와 소득 조건을 확인해주세요
+                </Typography>
+              </Box>
+            </>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <CreditCardIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                추천 카드 정보를 불러올 수 없습니다
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                캐릭터 분석을 먼저 완료해주세요
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    </>
     </>
   );
 };
