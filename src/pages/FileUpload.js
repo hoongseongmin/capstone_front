@@ -1,6 +1,5 @@
 // 파일 위치: /src/pages/FileUpload.js
 // 설명: navigate('/character') → navigate('/integrated')로 변경
-// 수정 내용: 파일 업로드 후 통합 분석 페이지로 리다이렉트
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +22,19 @@ import * as XLSX from 'xlsx';
 
 // API 함수 import
 import { classifyExcelFile } from '../api/classificationApi';
+
+
+const BANK_LIST = [
+  { value: '', label: '은행을 선택해주세요', disabled: true },
+  { value: 'nonghyup', label: '농협은행', disabled: false },
+  { value: 'kookmin', label: '국민은행', disabled: false },
+  { value: 'kakao', label: '카카오뱅크', disabled: false },
+  { value: 'shinhan', label: '신한은행', disabled: false },
+  { value: 'woori', label: '우리은행 (준비중)', disabled: true },
+  { value: 'hana', label: '하나은행 (준비중)', disabled: true },
+  { value: 'kbank', label: '케이뱅크 (준비중)', disabled: true },
+  { value: 'toss', label: '토스뱅크 (준비중)', disabled: true }
+];
 
 // 옵션 데이터
 const genderOptions = [
@@ -64,6 +76,7 @@ const incomeOptions = [
  { value: '300만원 이상', label: '300만원 이상' }
 ];
 
+
 const FileUpload = () => {
  const [file, setFile] = useState(null);
  const [uploading, setUploading] = useState(false);
@@ -78,6 +91,9 @@ const FileUpload = () => {
    occupation: '',
    income: ''
  });
+
+ // 🆕 은행 선택 상태 추가
+ const [selectedBank, setSelectedBank] = useState('');
 
  const handleFileChange = (event) => {
    const selectedFile = event.target.files[0];
@@ -97,8 +113,21 @@ const FileUpload = () => {
    }
  };
 
+// 🆕 은행 선택 핸들러
+const handleBankChange = (event) => {
+  setSelectedBank(event.target.value);
+  console.log('선택된 은행:', event.target.value);
+  
+};
+
 const handleSubmit = async (event) => {
  event.preventDefault();
+ 
+ // 🆕 은행 선택 확인
+ if (!selectedBank || selectedBank === '') {
+   setError('먼저 은행을 선택해주세요.');
+   return;
+ }
  
  if (!file) {
    setError('파일을 선택해주세요.');
@@ -265,7 +294,7 @@ const handleSubmit = async (event) => {
     left: 0,
     width: '100vw', 
     height: '100vh',
-    backgroundImage: 'url(/images/msti-bear.png)',
+    backgroundImage: 'url(/images/msti-bear.jpg)',
     backgroundSize: 'cover',
     backgroundPosition: 'center center',
     backgroundRepeat: 'no-repeat',
@@ -440,6 +469,50 @@ const handleSubmit = async (event) => {
                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                    엑셀 형식(.xlsx, .xls)의 거래 내역 파일을 업로드하여 소비 패턴을 분석해보세요.
                  </Typography>
+
+                 {/* 🆕 은행 선택 섹션 - 파일 업로드 단계에서 */}
+                 <Box sx={{ mb: 3 }}>
+                   <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
+                     🏦 은행 선택
+                   </Typography>
+                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                     거래내역을 다운로드한 은행을 선택해주세요.
+                   </Typography>
+                   
+                   <FormControl fullWidth size="medium" sx={{ mb: 2 }}>
+                     <InputLabel id="bank-select-label">은행 선택</InputLabel>
+                     <Select
+                       labelId="bank-select-label"
+                       id="bank-select"
+                       value={selectedBank}
+                       label="은행 선택"
+                       onChange={handleBankChange}
+                       sx={{ 
+                         bgcolor: 'white',
+                         '& .MuiOutlinedInput-notchedOutline': {
+                           borderColor: 'rgba(33, 150, 243, 0.3)'
+                         },
+                         '&:hover .MuiOutlinedInput-notchedOutline': {
+                           borderColor: 'primary.main'
+                         }
+                       }}
+                     >
+                       {BANK_LIST.map((bank) => (
+                         <MenuItem 
+                           key={bank.value} 
+                           value={bank.value}
+                           disabled={bank.disabled}
+                           sx={{
+                             color: bank.disabled ? 'text.disabled' : 'text.primary',
+                             fontStyle: bank.disabled ? 'italic' : 'normal'
+                           }}
+                         >
+                           {bank.label}
+                         </MenuItem>
+                       ))}
+                     </Select>
+                   </FormControl>                   
+                 </Box>
                  
                  <Box
                    component="form"
@@ -517,6 +590,8 @@ const handleSubmit = async (event) => {
            )}
          </>
        )}
+       
+       {/* 🆕 기존 별도 은행 선택 섹션 제거 - 이제 2단계에 통합됨 */}
        
        {/* 사용 안내 */}
        <Box sx={{ mt: 4 }}>

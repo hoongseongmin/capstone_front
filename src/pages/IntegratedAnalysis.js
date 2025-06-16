@@ -186,8 +186,13 @@ const IntegratedAnalysis = () => {
       '경조사비': '경조사비',
       '금융비': '금융비'
     };
-    return mapping[backendCategory] || '기타';
-  };
+    if (backendCategory === '송금') {
+    return null;
+  }
+  
+  return mapping[backendCategory] || '기타';
+};
+
 
   // ===== 카테고리별 지출 차트 데이터 생성 =====
   const generateCategoryBarData = () => {
@@ -205,19 +210,22 @@ const IntegratedAnalysis = () => {
   // ===== 사용자 데이터 계산 =====
   const calculateUserSpendingByCategory = (transactions) => {
     const categorySpending = {};
+  
+  transactions.forEach(transaction => {
+    const category = mapBackendCategoryToStatCategory(transaction.category);
+    const amountInWon = transaction.amount;
     
-    transactions.forEach(transaction => {
-      const category = mapBackendCategoryToStatCategory(transaction.category);
-      const amountInWon = transaction.amount;
-      
+    // 🆕 송금(null)은 제외하고 처리
+    if (category !== null) {
       if (!categorySpending[category]) {
         categorySpending[category] = 0;
       }
       categorySpending[category] += amountInWon;
-    });
-    
-    return categorySpending;
-  };
+    }
+  });
+  
+  return categorySpending;
+};
 
   // ===== 비교 데이터 생성 =====
   const generateCategoryComparisonData = useCallback((category) => {
@@ -544,7 +552,7 @@ const IntegratedAnalysis = () => {
     left: 0,
     width: '100vw', 
     height: '100vh',
-    backgroundImage: 'url(/images/msti-horse.png)', // ← 새 이미지 경로
+    backgroundImage: 'url(/images/msti-horse.jpg)', // ← 새 이미지 경로
     backgroundSize: 'cover',
     backgroundPosition: 'center center',
     backgroundRepeat: 'no-repeat',
@@ -610,10 +618,18 @@ const IntegratedAnalysis = () => {
 
       {/* ===================== 캐릭터 분석 섹션 ===================== */}
       <Box ref={sectionRefs.character} sx={{ minHeight: '100vh', py: 4 }}>
-        <Box sx={{ px: 4, maxWidth: '1400px', mx: 'auto' }}>
-          <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
-            🎯 내 소비 캐릭터 분석
-          </Typography>
+        <Box sx={{ px: 4, maxWidth: '1200px ', mx: 'auto' }}>
+          <Typography 
+  variant="h3" 
+  component="h1" 
+  gutterBottom 
+  align="center" 
+  sx={{ 
+  mb: 4
+}}
+>
+  내 소비 캐릭터 분석
+</Typography>
 
           {error && !matchingResult ? (
             <Alert severity="warning" sx={{ mb: 4, textAlign: 'center' }}>
@@ -624,7 +640,7 @@ const IntegratedAnalysis = () => {
             <Grid container spacing={3}>
               {/* 캐릭터 정보 카드 - 더 좁게 */}
               <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 3, position: 'relative', width : 500, height: 740, overflow: 'hidden' }}>
+                <Paper sx={{ p: 3, position: 'relative', width : 400, height: 740, overflow: 'hidden' }}>
                   {/* 캐릭터 정보 박스 */}
                   <Box sx={{ 
                     height: 'calc(100% - 32px)', 
@@ -749,10 +765,10 @@ const IntegratedAnalysis = () => {
 
       {/* 카테고리별 지출 분포 - 새로 개선된 버전 */}
 <Grid item xs={12} md={8}>
-  <Paper sx={{ p: 3, height: 740, width : 800, display: 'flex', flexDirection: 'column' }}>
+  <Paper sx={{ p: 3, height: 740, width : 700, display: 'flex', flexDirection: 'column' }}>
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-    <Typography variant="h5">📊 카테고리별 지출 분포</Typography>
+    <Typography variant="h5"> 카테고리별 지출 분포</Typography>
     {spendingPattern?.category_breakdown && (
       <Chip label={`${spendingPattern.category_breakdown.length}개 카테고리`} size="small" color="primary" />
     )}
@@ -987,7 +1003,7 @@ const IntegratedAnalysis = () => {
       <Box ref={sectionRefs.comparison} sx={{ minHeight: '100vh', py: 4 }}>
         <Container maxWidth="lg">
           <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
-            📈 소비 패턴 비교 분석
+            소비 패턴 비교 분석
           </Typography>
           
           <Typography variant="body1" paragraph align="center">
@@ -1189,11 +1205,11 @@ const IntegratedAnalysis = () => {
                               '여성': '👩 여성',
                               '서울': '🏙️ 서울',
                               '직장인': '💼 직장인',
-                              '대학생·대학원생(휴학생 포함)': '🎓 대학생',
-                              '자영업자·개인사업자·법인사업자': '🏪 자영업',
+                              '대학생·대학원생(휴학생 포함)': '🎓 대학생,대학원생',
+                              '자영업자·개인사업자·법인사업자': '🏪 자영업, 사업자',
                               '프리랜서·파트타임·아르바이트': '💻 프리랜서',
                               '전업주부': '🏠 전업주부',
-                              '취업준비생·무직·기타': '📝 구직자',
+                              '취업준비생·무직·기타': '📝 취업준비생·무직·기타',
                               '100만원 미만': '💰 ~100만원',
                               '100만원~300만원': '💰 100~300만원',
                               '300만원 이상': '💰 300만원+'
@@ -1208,7 +1224,7 @@ const IntegratedAnalysis = () => {
                             
                             // 지역 처리
                             if (value.includes('·')) {
-                              const shortName = value.split('·')[0];
+                              const shortName = value;
                               return `📍 ${shortName}`;
                             }
                             
@@ -1382,7 +1398,7 @@ const IntegratedAnalysis = () => {
       <Box ref={sectionRefs.cards} sx={{ minHeight: '100vh', py: 4}}>
         <Box sx={{ px: 4, maxWidth: '1100px', mx: 'auto' }}>
           <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 4 }}>
-            💳 내 소비캐릭터 맞춤 카드 추천
+            내 소비캐릭터 맞춤 카드 추천
           </Typography>
 
           {matchingResult && recommendedCards.length > 0 ? (

@@ -46,7 +46,7 @@ const Login = () => {
       left: 0,
       width: '100vw', 
       height: '100vh',
-      backgroundImage: 'url(/images/msti-bear.png)',
+      backgroundImage: 'url(/images/msti-bear.jpg)',
       backgroundSize: 'cover',
       backgroundPosition: 'center center',
       backgroundRepeat: 'no-repeat',

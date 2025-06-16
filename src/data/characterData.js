@@ -218,7 +218,7 @@ const mapToCharacterCategories = (backendCategory) => {
     '교통비': '교통비',
     '통신비': '통신비',
     '여가비': '여가비',
-
+    
     
     // 나머지는 매핑하지 않음 (4개 핵심 카테고리가 아님)
     '주거비': null,

@@ -292,7 +292,7 @@ const CategoryEdit = () => {
       left: 0,
       width: '100vw', 
       height: '100vh',
-      backgroundImage: 'url(/images/msti-horse.png)',
+      backgroundImage: 'url(/images/msti-horse.jpg)',
       backgroundSize: 'cover',
       backgroundPosition: 'center center',
       backgroundRepeat: 'no-repeat',
